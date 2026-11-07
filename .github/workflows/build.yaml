@@ -1,4 +1,4 @@
-name: Build Dummy APK Gradle
+name: Build Dummy APK
 
 on:
   push:
@@ -21,21 +21,47 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: 8.2
+
     - name: Build with Gradle
       run: |
-        # GANTI com/rioomd/app sesuai namespace di build.gradle
-        mkdir -p app/src/main
-        
-        # Bikin manifest dengan package yg sesuai
-        echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.rioomd.app"><application android:label="TemplateLH"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
-        
-        echo "include ':app'" > settings.gradle
-        
-        # Build
+        # 1. Bikin folder & Manifest langsung di root (tanpa folder app)
+        mkdir -p src/main
+        echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.rioomd.app"><application android:label="TemplateLH"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > src/main/AndroidManifest.xml
+
+        # 2. Bikin build.gradle langsung di root
+        cat <<EOF > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.0'
+            }
+        }
+        apply plugin: 'com.android.application'
+        android {
+            namespace 'com.kinar.rmdproject'
+            compileSdk 33
+            defaultConfig {
+                applicationId "com.kinar.rmdproject"
+                minSdk 21
+                targetSdk 33
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+        EOF
+
+        # 3. Jalanin Build
         gradle assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: template-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: build/outputs/apk/debug/*.apk
