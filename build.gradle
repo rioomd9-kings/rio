@@ -1,0 +1,33 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+    }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+    // GANTI BARIS INI BOS
+    namespace 'com.kinar.rmdproject' 
+    compileSdk 33
+
+    defaultConfig {
+        // DAN GANTI BARIS INI
+        applicationId "com.kinar.project" 
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+}
