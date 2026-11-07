@@ -1,4 +1,4 @@
-name: Build Dummy APK
+name: Build Dummy APK Gradle
 
 on:
   push:
@@ -18,42 +18,24 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y apktool aapt zipalign apksigner
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
-    - name: Build APK
+    - name: Build with Gradle
       run: |
-        # Bikin manifest
-        mkdir -p res/values
-        cat > AndroidManifest.xml <<EOF
-        <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.liberty.hollow.dummy">
-            <application android:label="TemplateLH">
-                <activity android:name=".MainActivity" android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>
-        EOF
-
-        # Compile pake aapt
-        aapt package -f -M AndroidManifest.xml -S res -I /usr/lib/android-sdk/platforms/android-33/android.jar -F unsigned.apk || aapt package -f -M AndroidManifest.xml -S res -F unsigned.apk
+        # GANTI com/rioomd/app sesuai namespace di build.gradle
+        mkdir -p app/src/main
         
-        # Inject DEX (biar valid)
-        touch classes.dex
-        zip -q -j unsigned.apk classes.dex || true
-
-        # Sign APK
-        keytool -genkey -v -keystore keystore.jks -alias lh -keyalg RSA -keysize 2048 -validity 10000 -storepass liberty123 -keypass liberty123 -dname "CN=LH, OU=Dev, O=LH, L=LH, S=LH, C=ID"
-        apksigner sign --ks keystore.jks --ks-pass pass:liberty123 --key-pass pass:liberty123 --out template.apk unsigned.apk
+        # Bikin manifest dengan package yg sesuai
+        echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.rioomd.app"><application android:label="TemplateLH"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+        
+        echo "include ':app'" > settings.gradle
+        
+        # Build
+        gradle assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: template-apk
-        path: template.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
