@@ -28,21 +28,20 @@ jobs:
 
     - name: Build with Gradle
       run: |
-        # 1. Bikin folder & Manifest langsung di root (tanpa folder app)
-        mkdir -p src/main
-        echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.rioomd.app"><application android:label="TemplateLH"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > src/main/AndroidManifest.xml
+        # 1. Bersihin file lama biar gk tabrakan
+        rm -f build.gradle settings.gradle
+        
+        # 2. Bikin struktur folder standar Android
+        mkdir -p app/src/main
+        
+        # 3. Bikin Manifest dengan namespace BARU: com.kinar.rmdproject
+        echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.kinar.rmdproject"><application android:label="rmdproject"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
 
-        # 2. Bikin build.gradle langsung di root
-        cat <<EOF > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.0'
-            }
-        }
+        # 4. Bikin settings.gradle
+        echo "include ':app'" > settings.gradle
+
+        # 5. Bikin build.gradle khusus modul app
+        cat <<EOF > app/build.gradle
         apply plugin: 'com.android.application'
         android {
             namespace 'com.kinar.rmdproject'
@@ -57,11 +56,24 @@ jobs:
         }
         EOF
 
-        # 3. Jalanin Build
+        # 6. Bikin build.gradle di root (buat classpath)
+        cat <<EOF > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.0'
+            }
+        }
+        EOF
+
+        # 7. Jalanin Build
         gradle assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: template-apk
-        path: build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/debug/*.apk
