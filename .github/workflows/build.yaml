@@ -1,0 +1,57 @@
+name: Build Dummy APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Install Android SDK
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y android-sdk
+
+    - name: Build APK
+      run: |
+        # Bikin manifest
+        cat > AndroidManifest.xml <<EOF
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.liberty.hollow.dummy">
+            <application android:label="Template">
+                <activity android:name=".MainActivity">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # Build pake aapt
+        aapt package -f -M AndroidManifest.xml -I /usr/lib/android-sdk/platforms/android-33/android.jar -F template-unsigned.apk
+        touch classes.dex
+        zip -q -j template-unsigned.apk classes.dex
+
+        # Align & Sign
+        zipalign -f -v 4 template-unsigned.apk template-aligned.apk
+        keytool -genkey -v -keystore keystore.jks -alias lh -keyalg RSA -keysize 2048 -validity 10000 -storepass liberty123 -keypass liberty123 -dname "CN=LH, OU=Dev, O=LH, L=LH, S=LH, C=ID" || true
+        apksigner sign --ks keystore.jks --ks-pass pass:liberty123 --key-pass pass:liberty123 --out template.apk template-aligned.apk
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: template-apk
+        path: template.apk
